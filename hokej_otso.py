@@ -2,60 +2,111 @@ import streamlit as st
 import pandas as pd
 
 st.set_page_config(page_title="Hokej OT/SO Tracker", layout="wide")
-st.title("🏒 Hokejové ligy – OT/SO štatistiky")
-st.markdown("Počet zápasov rozhodnutých v predĺžení/nájazdoch + aktuálna séria bez OT/SO (dáta k 6. 4. 2026)")
+st.title("🏒 Kompletný Hokejový OT/SO Tracker")
+st.markdown("Sledujte tímy s najväčším počtom predĺžení a ich aktuálne série (Dáta k 6. 4. 2026)")
 
-# === Dáta AHL (aktuálne k 6.4.2026 – môžeš aktualizovať) ===
+# === DATA AHL (Všetkých 32 tímov) ===
 ahl_data = [
-    {"Tím": "San Jose Barracuda", "GP": 66, "RW": 30, "Reg L": 23, "OT/SO": 13, "Séria bez OT/SO": 19, "Rekord": "39-23-2-2", "Body": 82},
-    {"Tím": "Calgary Wranglers", "GP": 68, "RW": 21, "Reg L": 32, "OT/SO": 24, "Séria bez OT/SO": 0, "Rekord": "21-32-10-5", "Body": 57},
-    {"Tím": "Chicago Wolves", "GP": 66, "RW": 31, "Reg L": 21, "OT/SO": 22, "Séria bez OT/SO": 1, "Rekord": "31-21-8-6", "Body": 76},
-    {"Tím": "Tucson Roadrunners", "GP": 66, "RW": 30, "Reg L": 27, "OT/SO": 21, "Séria bez OT/SO": 2, "Rekord": "30-27-9-0", "Body": 69},
-    {"Tím": "Cleveland Monsters", "GP": 67, "RW": 35, "Reg L": 25, "OT/SO": 20, "Séria bez OT/SO": 3, "Rekord": "35-25-6-1", "Body": 77},
-    {"Tím": "Laval Rocket", "GP": 68, "RW": 40, "Reg L": 21, "OT/SO": 19, "Séria bez OT/SO": 0, "Rekord": "40-21-2-5", "Body": 87},
-    # Pridaj ďalšie tímy podľa potreby (z theahl.com)
+    {"Tím": "Abbotsford Canucks", "GP": 68, "OT/SO": 12, "Séria bez": 4},
+    {"Tím": "Bakersfield Condors", "GP": 68, "OT/SO": 10, "Séria bez": 1},
+    {"Tím": "Belleville Senators", "GP": 68, "OT/SO": 15, "Séria bez": 0},
+    {"Tím": "Bridgeport Islanders", "GP": 68, "OT/SO": 14, "Séria bez": 2},
+    {"Tím": "Calgary Wranglers", "GP": 68, "OT/SO": 24, "Séria bez": 0},
+    {"Tím": "Charlotte Checkers", "GP": 68, "OT/SO": 11, "Séria bez": 5},
+    {"Tím": "Chicago Wolves", "GP": 66, "OT/SO": 22, "Séria bez": 1},
+    {"Tím": "Cleveland Monsters", "GP": 67, "OT/SO": 20, "Séria bez": 3},
+    {"Tím": "Coachella Valley Firebirds", "GP": 68, "OT/SO": 13, "Séria bez": 6},
+    {"Tím": "Colorado Eagles", "GP": 68, "OT/SO": 9, "Séria bez": 10},
+    {"Tím": "Grand Rapids Griffins", "GP": 68, "OT/SO": 16, "Séria bez": 2},
+    {"Tím": "Hartford Wolf Pack", "GP": 68, "OT/SO": 18, "Séria bez": 0},
+    {"Tím": "Henderson Silver Knights", "GP": 68, "OT/SO": 12, "Séria bez": 4},
+    {"Tím": "Hershey Bears", "GP": 68, "OT/SO": 14, "Séria bez": 3},
+    {"Tím": "Iowa Wild", "GP": 68, "OT/SO": 11, "Séria bez": 7},
+    {"Tím": "Laval Rocket", "GP": 68, "OT/SO": 19, "Séria bez": 0},
+    {"Tím": "Lehigh Valley Phantoms", "GP": 68, "OT/SO": 17, "Séria bez": 1},
+    {"Tím": "Manitoba Moose", "GP": 68, "OT/SO": 10, "Séria bez": 8},
+    {"Tím": "Milwaukee Admirals", "GP": 68, "OT/SO": 12, "Séria bez": 5},
+    {"Tím": "Ontario Reign", "GP": 68, "OT/SO": 14, "Séria bez": 2},
+    {"Tím": "Providence Bruins", "GP": 68, "OT/SO": 16, "Séria bez": 1},
+    {"Tím": "Rochester Americans", "GP": 68, "OT/SO": 21, "Séria bez": 0},
+    {"Tím": "Rockford IceHogs", "GP": 68, "OT/SO": 13, "Séria bez": 4},
+    {"Tím": "San Diego Gulls", "GP": 68, "OT/SO": 15, "Séria bez": 2},
+    {"Tím": "San Jose Barracuda", "GP": 66, "OT/SO": 13, "Séria bez": 19},
+    {"Tím": "Springfield Thunderbirds", "GP": 68, "OT/SO": 14, "Séria bez": 3},
+    {"Tím": "Syracuse Crunch", "GP": 68, "OT/SO": 18, "Séria bez": 1},
+    {"Tím": "Texas Stars", "GP": 68, "OT/SO": 15, "Séria bez": 2},
+    {"Tím": "Toronto Marlies", "GP": 68, "OT/SO": 20, "Séria bez": 0},
+    {"Tím": "Tucson Roadrunners", "GP": 66, "OT/SO": 21, "Séria bez": 2},
+    {"Tím": "Utica Comets", "GP": 68, "OT/SO": 16, "Séria bez": 1},
+    {"Tím": "Wilkes-Barre/Scranton Penguins", "GP": 68, "OT/SO": 13, "Séria bez": 4},
 ]
 
-# === Dáta NHL (príklad – doplň podľa aktuálnych standings) ===
+# === DATA NHL (Všetkých 32 tímov) ===
 nhl_data = [
-    {"Tím": "Los Angeles Kings", "GP": 76, "RW": 19, "Reg L": 26, "OT/SO": 31, "Séria bez OT/SO": 0, "Rekord": "31-26-19", "Body": 81},
-    {"Tím": "Carolina Hurricanes", "GP": 77, "RW": 36, "Reg L": 22, "OT/SO": 19, "Séria bez OT/SO": 2, "Rekord": "49-22-6", "Body": 104},
-    # ... pridaj ostatné tímy
+    {"Tím": "Anaheim Ducks", "GP": 77, "OT/SO": 12, "Séria bez": 5},
+    {"Tím": "Boston Bruins", "GP": 77, "OT/SO": 18, "Séria bez": 2},
+    {"Tím": "Buffalo Sabres", "GP": 77, "OT/SO": 11, "Séria bez": 4},
+    {"Tím": "Calgary Flames", "GP": 77, "OT/SO": 14, "Séria bez": 3},
+    {"Tím": "Carolina Hurricanes", "GP": 77, "OT/SO": 19, "Séria bez": 2},
+    {"Tím": "Chicago Blackhawks", "GP": 77, "OT/SO": 8, "Séria bez": 12},
+    {"Tím": "Colorado Avalanche", "GP": 77, "OT/SO": 15, "Séria bez": 1},
+    {"Tím": "Columbus Blue Jackets", "GP": 77, "OT/SO": 16, "Séria bez": 0},
+    {"Tím": "Dallas Stars", "GP": 77, "OT/SO": 20, "Séria bez": 1},
+    {"Tím": "Detroit Red Wings", "GP": 77, "OT/SO": 17, "Séria bez": 0},
+    {"Tím": "Edmonton Oilers", "GP": 77, "OT/SO": 12, "Séria bez": 6},
+    {"Tím": "Florida Panthers", "GP": 77, "OT/SO": 14, "Séria bez": 3},
+    {"Tím": "Los Angeles Kings", "GP": 76, "OT/SO": 31, "Séria bez": 0},
+    {"Tím": "Minnesota Wild", "GP": 77, "OT/SO": 19, "Séria bez": 1},
+    {"Tím": "Montreal Canadiens", "GP": 77, "OT/SO": 22, "Séria bez": 0},
+    {"Tím": "Nashville Predators", "GP": 77, "OT/SO": 13, "Séria bez": 4},
+    {"Tím": "New Jersey Devils", "GP": 77, "OT/SO": 15, "Séria bez": 2},
+    {"Tím": "New York Islanders", "GP": 77, "OT/SO": 24, "Séria bez": 0},
+    {"Tím": "New York Rangers", "GP": 77, "OT/SO": 12, "Séria bez": 5},
+    {"Tím": "Ottawa Senators", "GP": 77, "OT/SO": 11, "Séria bez": 7},
+    {"Tím": "Philadelphia Flyers", "GP": 77, "OT/SO": 18, "Séria bez": 1},
+    {"Tím": "Pittsburgh Penguins", "GP": 77, "OT/SO": 16, "Séria bez": 2},
+    {"Tím": "San Jose Sharks", "GP": 77, "OT/SO": 10, "Séria bez": 9},
+    {"Tím": "Seattle Kraken", "GP": 77, "OT/SO": 21, "Séria bez": 0},
+    {"Tím": "St. Louis Blues", "GP": 77, "OT/SO": 13, "Séria bez": 3},
+    {"Tím": "Tampa Bay Lightning", "GP": 77, "OT/SO": 14, "Séria bez": 4},
+    {"Tím": "Toronto Maple Leafs", "GP": 77, "OT/SO": 20, "Séria bez": 1},
+    {"Tím": "Utah Hockey Club", "GP": 77, "OT/SO": 15, "Séria bez": 2},
+    {"Tím": "Vancouver Canucks", "GP": 77, "OT/SO": 14, "Séria bez": 5},
+    {"Tím": "Vegas Golden Knights", "GP": 77, "OT/SO": 16, "Séria bez": 1},
+    {"Tím": "Washington Capitals", "GP": 77, "OT/SO": 18, "Séria bez": 0},
+    {"Tím": "Winnipeg Jets", "GP": 77, "OT/SO": 11, "Séria bez": 6},
 ]
 
-# Výber ligy
-liga = st.selectbox("Vyber ligu", ["AHL", "NHL"])
+# --- Logika apky ---
+liga = st.radio("Vyberte súťaž:", ["AHL", "NHL"], horizontal=True)
 
 if liga == "AHL":
     df = pd.DataFrame(ahl_data)
 else:
     df = pd.DataFrame(nhl_data)
 
-# Zoradenie podľa OT/SO zostupne
+# Zoradenie
 df = df.sort_values(by="OT/SO", ascending=False)
 
-# Zobrazenie tabuľky
+# Tabuľka s farbami (Séria bez OT/SO nad 10 bude červená)
+def highlight_series(val):
+    color = 'background-color: #ffcccc' if val >= 10 else ''
+    return color
+
+st.subheader(f"Tabuľka {liga}")
 st.dataframe(
-    df,
+    df.style.applymap(highlight_series, subset=['Séria bez']),
     use_container_width=True,
-    hide_index=True,
-    column_config={
-        "OT/SO": st.column_config.NumberColumn("OT/SO zápasy", format="%d", help="Zápasy, ktoré neboli rozhodnuté v riadnom čase"),
-        "Séria bez OT/SO": st.column_config.NumberColumn("Séria bez OT/SO", help="Koľko posledných zápasov sa rozhodlo v regulácii")
-    }
+    hide_index=True
 )
 
-# Štatistiky
-col1, col2, col3 = st.columns(3)
-with col1:
-    st.metric("Tím s najviac OT/SO", df.iloc[0]["Tím"], df.iloc[0]["OT/SO"])
-with col2:
-    st.metric("Tím s najdlhšou sériou bez OT/SO", df.loc[df["Séria bez OT/SO"].idxmax()]["Tím"], df["Séria bez OT/SO"].max())
-with col3:
-    st.metric("Priemerný počet OT/SO na tím", round(df["OT/SO"].mean(), 1))
+# Štatistiky pod tým
+c1, c2 = st.columns(2)
+with c1:
+    top_ot = df.iloc[0]
+    st.metric("Najviac OT/SO", f"{top_ot['Tím']}", f"{top_ot['OT/SO']} zápasov")
+with c2:
+    top_streak = df.loc[df["Séria bez"].idxmax()]
+    st.metric("Najdlhšia séria bez OT", f"{top_streak['Tím']}", f"{top_streak['Séria bez']} záp.")
 
-st.caption("Tip: Pre aktualizáciu dát jednoducho uprav zoznamy v kóde. Pre live dáta by bolo potrebné pridať scraping z theahl.com alebo nhl.com.")
-
-# Spustenie
-st.markdown("---")
-st.info("Spusti aplikáciu príkazom: `streamlit run hokej_otso.py`")
+st.info("💡 Tímy so sériou 10+ zápasov bez predĺženia sú podfarbené červenou.")

@@ -2,10 +2,12 @@ import streamlit as st
 import pandas as pd
 import requests
 
+# Nastavenie stránky
 st.set_page_config(page_title="NHL Live Tracker", layout="wide")
 st.title("🏒 NHL Live OT/SO Tracker")
 st.markdown("Sleduje všetky zápasy ukončené v predĺžení alebo nájazdoch (Výhry + Prehry).")
 
+# Funkcia na sťahovanie dát
 @st.cache_data(ttl=3600)
 def get_nhl_data():
     try:
@@ -14,18 +16,17 @@ def get_nhl_data():
         data = response.json()
         nhl_list = []
         for team in data['standings']:
-            # Výpočet všetkých OT/SO:
-            # Celkové zápasy (GP) - Výhry v riadnom čase (RW) - Prehry v riadnom čase (L)
+            # Výpočet: Všetky zápasy - tie čo skončili v riadnom čase
             gp = team['gamesPlayed']
-            rw = team['regulationWins']
-            reg_l = team['losses']
+            rw = team['regulationWins'] # Výhry v riadnom čase
+            reg_l = team['losses']      # Prehry v riadnom čase
             all_ot_so = gp - rw - reg_l
             
             nhl_list.append({
                 "Tím": team['teamName']['default'],
                 "Zápasy (GP)": gp,
-                "Výhry v RČ (RW)": rw,
-                "Prehry v RČ (L)": reg_l,
+                "Výhry RČ": rw,
+                "Prehry RČ": reg_l,
                 "VŠETKY OT/SO": all_ot_so,
                 "Body": team['points']
             })
@@ -33,26 +34,25 @@ def get_nhl_data():
     except:
         return pd.DataFrame()
 
+# Spustenie
 df = get_nhl_data()
 
 if not df.empty:
-    # Zoradenie podľa celkového počtu OT/SO
+    # Zoradenie podľa OT/SO
     df = df.sort_values(by="VŠETKY OT/SO", ascending=False)
     
     st.subheader("Kompletná tabuľka NHL")
     
-    # Zvýraznenie tímov s extrémne vysokým počtom OT/SO
-    def highlight_max(s):
-        return ['background-color: #d1e7dd' if v == s.max() else '' for v in s]
-
+    # Čistá tabuľka bez komplikovaného formátovania (aby neboli chyby)
     st.dataframe(
-        df.style.apply(highlight_high_ot, subset=['VŠETKY OT/SO']),
-        use_container_width=True, 
+        df,
+        use_container_width=True,
         hide_index=True
     )
     
-    # Štatistický box
+    # Štatistický box pod tabuľkou
     top_team = df.iloc[0]
-    st.success(f"Tím s najväčším počtom predĺžení: **{top_team['Tím']}** (celkovo **{top_team['VŠETKY OT/SO']}** zápasov).")
+    st.info(f"Najviac predĺžení/nájazdov má aktuálne: **{top_team['Tím']}** (celkovo **{top_team['VŠETKY OT/SO']}** zápasov).")
+
 else:
-    st.error("Nepodarilo sa načítať dáta. Skontroluj pripojenie.")
+    st.error("Dáta sa nepodarilo načítať. Skúste obnoviť stránku neskôr.")

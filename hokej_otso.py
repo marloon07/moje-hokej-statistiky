@@ -1,87 +1,77 @@
 import streamlit as st
 import pandas as pd
 import requests
-import time
 
 st.set_page_config(page_title="NHL OT/SO Tracker", layout="wide")
-st.title("🏒 NHL Live: Séria bez predĺženia")
-st.markdown("Počíta sa počet po sebe idúcich zápasov rozhodnutých v riadnom hracom čase.")
+st.title("🏒 NHL Live: Presné série bez OT/SO")
+st.markdown("Počíta zápasy v rade, ktoré skončili presne po 3. tretine (60 min).")
 
-@st.cache_data(ttl=900)
-def get_nhl_stats():
+@st.cache_data(ttl=600)
+def get_verified_stats():
     try:
-        # 1. Získame základnú tabuľku
-        standings_url = "https://api-web.nhle.com/v1/standings/now"
-        standings = requests.get(standings_url).json()
+        # 1. Základná tabuľka
+        url_standings = "https://api-web.nhle.com/v1/standings/now"
+        standings = requests.get(url_standings).json()
         
         results = []
-        
-        # Prejdeme tímy (obmedzíme počet požiadaviek, aby nás server nezablokoval)
         for team in standings['standings']:
             abbrev = team['teamAbbrev']['default']
             name = team['teamName']['default']
             
-            # Celkové štatistiky
+            # Celkové OT/SO z tabuľky
             gp = team.get('gamesPlayed', 0)
             rw = team.get('regulationWins', 0)
-            reg_l = team.get('losses', 0)
-            total_ot_so = gp - rw - reg_l
+            l_reg = team.get('losses', 0)
+            total_ot_so = gp - rw - l_reg
             
-            # 2. Získame posledné zápasy tímu
-            sched_url = f"https://api-web.nhle.com/v1/club-schedule-season/{abbrev}/now"
-            sched_data = requests.get(sched_url).json()
+            # 2. Detailný rozpis zápasov pre tento tím
+            url_sched = f"https://api-web.nhle.com/v1/club-schedule-season/{abbrev}/now"
+            sched = requests.get(url_sched).json()
             
-            # Vyfiltrujeme len ukončené zápasy základnej časti
-            played_games = [g for g in sched_data['games'] if g['gameType'] == 2 and g['gameState'] == "OFF"]
+            # Len odohraté zápasy (OFF = Finished)
+            played = [g for g in sched['games'] if g['gameState'] == "OFF" and g['gameType'] == 2]
             
-            # Výpočet série (ideme od konca do minulosti)
-            current_streak = 0
-            for game in reversed(played_games):
-                # periodDescriptor.number: 3=Riadny čas, 4=OT, 5=SO
-                last_period = game.get('periodDescriptor', {}).get('number', 3)
+            # Analýza série od najnovšieho zápasu
+            count = 0
+            for game in reversed(played):
+                # periodDescriptor number: 3 = Riadny čas, 4 = OT, 5 = SO
+                last_p = game.get('periodDescriptor', {}).get('number', 3)
                 
-                if last_period == 3:
-                    current_streak += 1
+                if last_p == 3:
+                    count += 1
                 else:
-                    break # Narazili sme na predĺženie, séria končí
+                    # Akonáhle narazíme na OT (4) alebo SO (5), séria končí
+                    break
             
             results.append({
                 "Tím": name,
                 "GP": gp,
                 "Všetky OT/SO": total_ot_so,
-                "Séria bez OT": current_streak,
+                "Séria bez OT": count,
                 "Body": team.get('points', 0)
             })
-            # Krátka pauza, aby nás NHL server neoznačil za útok
-            time.sleep(0.05)
-            
         return pd.DataFrame(results)
-    except Exception as e:
+    except:
         return pd.DataFrame()
 
-with st.spinner('Prepočítavam históriu zápasov...'):
-    df = get_nhl_stats()
+with st.spinner('Počítam série...'):
+    df = get_verified_stats()
 
 if not df.empty:
-    # Zoradenie podľa najdlhšej série
+    # Zoradenie podľa série
     df = df.sort_values(by="Séria bez OT", ascending=False)
     
-    # Štatistický box
-    top_streak = df.iloc[0]
-    st.error(f"🔥 Najdlhšia séria: **{top_streak['Tím']}** nezažil predĺženie už **{top_streak['Séria bez OT']}** zápasov!")
+    # Zobrazenie top tímu
+    top = df.iloc[0]
+    st.error(f"Aktuálne najdlhšia séria: **{top['Tím']}** ({top['Séria bez OT']} zápasov)")
 
-    # Tabuľka s podfarbením
-    def highlight_streak(val):
-        if val >= 10: return 'background-color: #ff4b4b; color: white'
-        if val >= 7: return 'background-color: #ffcccc'
-        return ''
-
+    # Tabuľka
     st.dataframe(
-        df.style.map(highlight_streak, subset=['Séria bez OT']),
+        df,
         use_container_width=True,
         hide_index=True
     )
     
-    st.info("💡 **Séria bez OT** = počet zápasov v rade rozhodnutých v riadnom hracom čase (60 min).")
+    st.info("💡 Ak vidíš pri Detroite 10, znamená to, že ich posledných 10 zápasov malo presne 3 tretiny.")
 else:
-    st.warning("NHL server je momentálne zaneprázdnený. Skús obnoviť stránku (Refresh) o pár sekúnd.")
+    st.error("Chyba pri sťahovaní dát.")

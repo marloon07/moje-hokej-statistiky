@@ -5,7 +5,7 @@ st.set_page_config(page_title="Hokej OT/SO Tracker", layout="wide")
 st.title("🏒 Kompletný Hokejový OT/SO Tracker")
 st.markdown("Sledujte tímy s najväčším počtom predĺžení a ich aktuálne série (Dáta k 6. 4. 2026)")
 
-# === DATA AHL (Všetkých 32 tímov) ===
+# === DATA AHL ===
 ahl_data = [
     {"Tím": "Abbotsford Canucks", "GP": 68, "OT/SO": 12, "Séria bez": 4},
     {"Tím": "Bakersfield Condors", "GP": 68, "OT/SO": 10, "Séria bez": 1},
@@ -41,7 +41,7 @@ ahl_data = [
     {"Tím": "Wilkes-Barre/Scranton Penguins", "GP": 68, "OT/SO": 13, "Séria bez": 4},
 ]
 
-# === DATA NHL (Všetkých 32 tímov) ===
+# === DATA NHL ===
 nhl_data = [
     {"Tím": "Anaheim Ducks", "GP": 77, "OT/SO": 12, "Séria bez": 5},
     {"Tím": "Boston Bruins", "GP": 77, "OT/SO": 18, "Séria bez": 2},
@@ -88,23 +88,25 @@ else:
 # Zoradenie
 df = df.sort_values(by="OT/SO", ascending=False)
 
-# Tabuľka s farbami (Séria bez OT/SO nad 10 bude červená)
+# Opravené farbenie (používa map namiesto applymap)
 def highlight_series(val):
-    color = 'background-color: #ffcccc' if val >= 10 else ''
-    return color
+    if isinstance(val, int) and val >= 10:
+        return 'background-color: #ffcccc'
+    return ''
 
 st.subheader(f"Tabuľka {liga}")
+# Používame styler len na stĺpec 'Séria bez'
 st.dataframe(
-    df.style.applymap(highlight_series, subset=['Séria bez']),
+    df.style.map(highlight_series, subset=['Séria bez']),
     use_container_width=True,
     hide_index=True
 )
 
-# Štatistiky pod tým
+# Štatistiky
 c1, c2 = st.columns(2)
 with c1:
     top_ot = df.iloc[0]
-    st.metric("Najviac OT/SO", f"{top_ot['Tím']}", f"{top_ot['OT/SO']} zápasov")
+    st.metric("Najviac OT/SO", f"{top_ot['Tím']}", f"{top_ot['OT/SO']}")
 with c2:
     top_streak = df.loc[df["Séria bez"].idxmax()]
     st.metric("Najdlhšia séria bez OT", f"{top_streak['Tím']}", f"{top_streak['Séria bez']} záp.")

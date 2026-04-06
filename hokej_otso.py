@@ -3,48 +3,48 @@ import pandas as pd
 import requests
 
 st.set_page_config(page_title="NHL OT/SO Tracker", layout="wide")
-st.title("🏒 NHL Live: Presné série bez OT/SO")
-st.markdown("Počíta zápasy v rade, ktoré skončili presne po 3. tretine (60 min).")
+st.title("🏒 NHL Live: Fixný Tracker Séria")
 
 @st.cache_data(ttl=600)
-def get_verified_stats():
+def get_final_stats():
     try:
-        # 1. Základná tabuľka
         url_standings = "https://api-web.nhle.com/v1/standings/now"
         standings = requests.get(url_standings).json()
         
         results = []
         for team in standings['standings']:
             abbrev = team['teamAbbrev']['default']
-            name = team['teamName']['default']
             
-            # Celkové OT/SO z tabuľky
+            # 1. Výpočet celkových OT/SO (z oficiálnych stĺpcov tabuľky)
             gp = team.get('gamesPlayed', 0)
-            rw = team.get('regulationWins', 0)
-            l_reg = team.get('losses', 0)
+            rw = team.get('regulationWins', 0) # Výhry v riadnom čase
+            l_reg = team.get('losses', 0)      # Prehry v riadnom čase
             total_ot_so = gp - rw - l_reg
             
-            # 2. Detailný rozpis zápasov pre tento tím
+            # 2. Výpočet série analýzou posledných zápasov
             url_sched = f"https://api-web.nhle.com/v1/club-schedule-season/{abbrev}/now"
             sched = requests.get(url_sched).json()
             
-            # Len odohraté zápasy (OFF = Finished)
+            # Len odohraté zápasy základnej časti
             played = [g for g in sched['games'] if g['gameState'] == "OFF" and g['gameType'] == 2]
             
-            # Analýza série od najnovšieho zápasu
             count = 0
             for game in reversed(played):
-                # periodDescriptor number: 3 = Riadny čas, 4 = OT, 5 = SO
-                last_p = game.get('periodDescriptor', {}).get('number', 3)
+                # KLÚČOVÝ TEST: Ak sa skóre po 3. tretine (P3) nerovná konečnému skóre, bolo OT/SO
+                home_final = game.get('homeTeam', {}).get('score', 0)
+                away_final = game.get('awayTeam', {}).get('score', 0)
                 
-                if last_p == 3:
+                # Zisťujeme stav po 60 minútach
+                # Ak zápas skončil remízou po 3. tretine, periodDescriptor bude mať 'number' > 3
+                is_overtime = game.get('periodDescriptor', {}).get('number', 3) > 3
+                
+                if not is_overtime:
                     count += 1
                 else:
-                    # Akonáhle narazíme na OT (4) alebo SO (5), séria končí
                     break
             
             results.append({
-                "Tím": name,
+                "Tím": team['teamName']['default'],
                 "GP": gp,
                 "Všetky OT/SO": total_ot_so,
                 "Séria bez OT": count,
@@ -54,24 +54,23 @@ def get_verified_stats():
     except:
         return pd.DataFrame()
 
-with st.spinner('Počítam série...'):
-    df = get_verified_stats()
+with st.spinner('Sťahujem a overujem zápasy...'):
+    df = get_final_stats()
 
 if not df.empty:
-    # Zoradenie podľa série
     df = df.sort_values(by="Séria bez OT", ascending=False)
     
-    # Zobrazenie top tímu
-    top = df.iloc[0]
-    st.error(f"Aktuálne najdlhšia séria: **{top['Tím']}** ({top['Séria bez OT']} zápasov)")
+    # Zvýraznenie série (červená nad 9 zápasov)
+    def style_streak(val):
+        color = '#ff4b4b' if val >= 10 else ('#ffcccc' if val >= 7 else None)
+        return f'background-color: {color}' if color else ''
 
-    # Tabuľka
     st.dataframe(
-        df,
+        df.style.map(style_streak, subset=['Séria bez OT']),
         use_container_width=True,
         hide_index=True
     )
     
-    st.info("💡 Ak vidíš pri Detroite 10, znamená to, že ich posledných 10 zápasov malo presne 3 tretiny.")
+    st.info("💡 **Séria bez OT** teraz počíta len zápasy, ktoré skončili v riadnom hracom čase (Period 3).")
 else:
-    st.error("Chyba pri sťahovaní dát.")
+    st.error("Dáta momentálne nie sú dostupné.")
